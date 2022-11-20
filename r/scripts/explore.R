@@ -53,7 +53,8 @@ desired_data <- raw_data %>%
   select(ROG3, Ctry, PeopleCluster, AffinityBloc,
          PrimaryReligion, colonizer,
          Population, Longitude, Latitude,
-         ROL3, PrimaryLanguageName)
+         ROL3, PrimaryLanguageName,
+         PeopNameAcrossCountries)
 
 toJSON(desired_data) %>%
   write("data/output/aseanEthnicGroup.json")
@@ -130,7 +131,7 @@ ggplot(combined_data, aes(
   #                shape = PrimaryReligion)) +
   geom_col(aes(fill = PrimaryReligion)) +
   facet_grid(rows = vars(Ctry), scales = "free_y") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   coord_flip()
 
 ggplot(combined_data, aes(
@@ -165,6 +166,24 @@ ggplot(distrib_data) +
                y = pop_thousand,
                fill = PrimaryReligion)) + 
   facet_wrap(vars(Ctry), scales = "free_y") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   coord_flip()
 
+ggplot(distrib_data %>%
+         mutate(pop_thou_log = log10(pop_thousand))) +
+  geom_tile(aes(x = lang_family,
+               y = PrimaryReligion,
+               fill = pop_thou_log)) +
+  facet_wrap(vars(Ctry), scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  # scale_fill_continuous(palette = "RdYlBu")
+  # scale_fill_gradient2(
+  #   low = "white", 
+  #   mid = "grey", 
+  #   high = "brown", 
+  #   midpoint = 1
+  # )
+  scale_fill_viridis_c(option = "magma", direction = -1)
+
+toJSON(distrib_data) %>%
+  write("data/output/aseanDistributionData.json")
