@@ -150,8 +150,9 @@ ggplot(combined_data, aes(
 #--- REPRESENT COMMUNITIES ---#
 
 distrib_data <- combined_data %>%
-  select(Ctry, PrimaryReligion, lang_family, Population) %>%
-  group_by(Ctry, PrimaryReligion, lang_family) %>%
+  rename(langFamily = lang_family) %>%
+  select(Ctry, PrimaryReligion, langFamily, Population) %>%
+  group_by(Ctry, PrimaryReligion, langFamily) %>%
   summarize(Population = sum(Population)) %>%
   ungroup() %>%
   mutate(percent = (Population / sum(Population) * 100),
@@ -162,7 +163,7 @@ distrib_data <- combined_data %>%
 
 # Quickly visualize
 ggplot(distrib_data) +
-  geom_col(aes(x = lang_family,
+  geom_col(aes(x = langFamily,
                y = pop_thousand,
                fill = PrimaryReligion)) + 
   facet_wrap(vars(Ctry), scales = "free_y") +
@@ -171,7 +172,7 @@ ggplot(distrib_data) +
 
 ggplot(distrib_data %>%
          mutate(pop_thou_log = log10(pop_thousand))) +
-  geom_tile(aes(x = lang_family,
+  geom_tile(aes(x = langFamily,
                y = PrimaryReligion,
                fill = pop_thou_log)) +
   facet_wrap(vars(Ctry), scales = "free") +
