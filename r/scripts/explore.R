@@ -61,6 +61,9 @@ toJSON(desired_data) %>%
 # Language Families
 glotto_data <- as_tibble(glottolog) %>%
   filter(iso %in% unique(desired_data$ROL3)) %>%
+  filter(affiliation != "Bookkeeping" & 
+           affiliation != "NA") %>%
+  filter(affiliation != "Sign Language") %>%
   select(iso, level, area, affiliation) %>%
   rename(lang_iso = iso,
          lang_level = level,
@@ -69,7 +72,8 @@ glotto_data <- as_tibble(glottolog) %>%
   mutate(lang_family = str_extract(lang_affiliation, '[\\w\\s\\-]*'))
 
 combined_data <- desired_data %>%
-  left_join(glotto_data, by = c("ROL3" = "lang_iso"))
+  left_join(glotto_data, by = c("ROL3" = "lang_iso")) %>%
+  mutate(Ctry = fct_relevel(desired_data$Ctry, sea_countries_full))
 
 
 #--- VISUALIZE --- #
@@ -88,10 +92,11 @@ ggmap(asean_map, darken = c(0.5, "white")) +
   geom_point(data = combined_data,
              aes(Longitude, Latitude,
                  size = Population,
-                 color = PeopleCluster # PrimaryReligion # PeopleCluster # AffinityBloc,
+                 color = lang_family, # PrimaryReligion # PeopleCluster # AffinityBloc,
+                 shape= PrimaryReligion
                  ),
              fill = "transparent")
-  + theme(legend.position="none")
+  # + theme(legend.position="none")
 
 # Visualize the timeline of colonization per country
 coldat_malaysia_tbl <- desired_coldat_data %>%
@@ -111,17 +116,55 @@ ggplot(toplot_coldat_data) +
       ymin = colstart_max,
       ymax = colend_max,
       color = colonizer),
-    size = 5, 
+    size = 5,
     alpha = 0.95) +
   coord_flip() +
   labs(x = "Country", y = "Year")
 
 # Facet visualize
 ggplot(combined_data, aes(
-    x = lang_family, 
-    y = Population,
-    fill = lang_family)) +
-  geom_col() +
-  facet_grid(cols = vars(Ctry)) +
+    x = lang_family,
+    y = Population)) +
+  # geom_point(aes(size = Population, 
+  #                color = lang_family,
+  #                shape = PrimaryReligion)) +
+  geom_col(aes(fill = PrimaryReligion)) +
+  facet_grid(rows = vars(Ctry), scales = "free_y") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   coord_flip()
+
+ggplot(combined_data, aes(
+    x = reorder(Ctry, desc(Ctry)),
+    y = Population)) +
+  geom_col(aes(fill = lang_family)) +
+  coord_flip()
+
+ggplot(combined_data, aes(
+    x = reorder(Ctry, desc(Ctry)),
+    y = Population)) +
+  geom_col(aes(fill = PrimaryReligion)) +
+  coord_flip()
+
+
+#--- REPRESENT COMMUNITIES ---#
+
+distrib_data <- combined_data %>%
+  select(Ctry, PrimaryReligion, lang_family, Population) %>%
+  group_by(Ctry, PrimaryReligion, lang_family) %>%
+  summarize(Population = sum(Population)) %>%
+  ungroup() %>%
+  mutate(percent = (Population / sum(Population) * 100),
+         pop_thousand = round(percent * 100)) %>%
+  arrange(desc(percent)) %>%
+  filter(pop_thousand != 0)
+
+
+# Quickly visualize
+ggplot(distrib_data) +
+  geom_col(aes(x = lang_family,
+               y = pop_thousand,
+               fill = PrimaryReligion)) + 
+  facet_wrap(vars(Ctry), scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  coord_flip()
+
