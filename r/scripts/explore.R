@@ -218,7 +218,7 @@ distrib_data <- majority_data %>%
   filter(!is.na(Ctry)) %>%
   filter(Ctry != "Brunei") %>% # Replace with the tweaked one above
   bind_rows(brunei_data) %>%
-  arrange(Ctry, PrimaryReligion, langFamily)
+  arrange(Ctry, desc(Population), PrimaryReligion, langFamily)
 
 print(distrib_data, n = nrow(distrib_data))
 
