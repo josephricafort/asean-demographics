@@ -222,6 +222,7 @@ distrib_data <- majority_data %>%
   arrange(Ctry, desc(Population), PrimaryReligion, langFamily)
 
 print(distrib_data, n = nrow(distrib_data))
+distrib_data %>% colnames
 
 # Quickly visualize
 ggplot(distrib_data) +
@@ -250,5 +251,11 @@ ggplot(distrib_data %>% mutate(popThouLog = log10(popThou))) +
                        direction = -1,
                        na.value = "white")
 
-toJSON(distrib_data) %>%
+distrib_data_json <- distrib_data %>%
+  rename(country = Ctry,
+         primaryReligion = PrimaryReligion,
+         peopleCluster = PeopleCluster,
+         population = Population)
+
+toJSON(distrib_data_json) %>%
   write("data/output/aseanDistributionData.json")
