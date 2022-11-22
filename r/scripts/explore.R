@@ -205,6 +205,7 @@ superminority_data <- strat_min_data %>%
 # is represented by a single unit, we need to recode
 # the wordings of 'Other' to 'All' (Ex.: Other Clusters
 # will become All Clusters)
+replaceOtherAll <- 
 brunei_data <- superminority_data %>%
   filter(Ctry == "Brunei") %>%
   mutate(across(PeopleCluster:langFamily, 
@@ -224,18 +225,18 @@ print(distrib_data, n = nrow(distrib_data))
 
 # Quickly visualize
 ggplot(distrib_data) +
-  geom_col(aes(x = langFamily,
+  geom_col(aes(x = fct_rev(as.factor(PeopleCluster)),
                y = popThou,
-               fill = PrimaryReligion)) + 
+               fill = langFamily)) +
   facet_wrap(vars(Ctry), scales = "free_y") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   coord_flip()
+  # coord_polar()
 
-ggplot(distrib_data %>%
-         mutate(popThouLog = log10(popThou))) +
+ggplot(distrib_data %>% mutate(popThouLog = log10(popThou))) +
   geom_tile(aes(x = langFamily,
-               y = PrimaryReligion,
-               fill = popThouLog)) +
+                y = PrimaryReligion,
+                fill = popThouLog)) +
   facet_wrap(vars(Ctry), scales = "free_x") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   # scale_fill_continuous(palette = "RdYlBu")
