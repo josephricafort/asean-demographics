@@ -259,3 +259,6 @@ distrib_data_json <- distrib_data %>%
 
 toJSON(distrib_data_json) %>%
   write("data/output/aseanDistributionData.json")
+
+distrib_data_json %>%
+  summarize(sum = sum(popThou))
