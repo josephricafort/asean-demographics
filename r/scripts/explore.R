@@ -205,13 +205,12 @@ superminority_data <- strat_min_data %>%
 # is represented by a single unit, we need to recode
 # the wordings of 'Other' to 'All' (Ex.: Other Clusters
 # will become All Clusters)
-replaceOtherAll <- 
 brunei_data <- superminority_data %>%
-  filter(Ctry == "Brunei") %>%
-  mutate(across(PeopleCluster:langFamily, 
-                function (c){ 
-                  return (str_replace(c, "Other", "All")) 
-                }))
+  filter(Ctry == "Brunei") # %>%
+  # mutate(across(PeopleCluster:langFamily,
+  #               function (c){
+  #                 return (str_replace(c, "Other", "All"))
+  #               }))
   
 distrib_data <- majority_data %>%
   bind_rows(minority_data, superminority_data) %>%
@@ -260,5 +259,44 @@ distrib_data_json <- distrib_data %>%
 toJSON(distrib_data_json) %>%
   write("data/output/aseanDistributionData.json")
 
+
+# Summarize to serve as reference
+
 distrib_data_json %>%
-  summarize(sum = sum(popThou))
+  arrange(desc(popThou)) %>%
+  print(n = Inf)
+
+distrib_data_json %>%
+  group_by(langFamily) %>%
+  summarize(sumPopThou= sum(popThou)) %>%
+  ungroup() %>%
+  mutate(perc = sumPopThou/sum(sumPopThou)*100) %>%
+  arrange(desc(sumPopThou))
+
+distrib_data_json %>%
+  arrange(country) %>%
+  print(n = Inf)
+
+distrib_indonesia <- distrib_data_json %>%
+  filter(country == "Indonesia") %>%
+  select(-popTenThou, -percent, -population) %>%
+  mutate(location = str_extract(peopleCluster, " of \\w*") %>%
+           str_replace(" of ", "") %>%
+           str_trim()) %>%
+  arrange(location, desc(popThou)) %>%
+  print(n = Inf)
+
+distrib_data_json %>%
+  filter(country == "Cambodia") %>%
+  select(-popTenThou, -percent, -population)
+
+# Review Brunei
+combined_data %>%
+  filter(Ctry == "Brunei") %>%
+  arrange(desc(Population))
+
+distrib_data_json %>%
+  group_by(country) %>%
+  summarize(popThou = sum(popThou))
+
+           
