@@ -1,0 +1,249 @@
+---
+title: "ASEAN Demographics exploration"
+output: html_notebook
+---
+
+```{r}
+library("ggrepel")
+source("scripts/explore.r")
+```
+# Visualize
+
+## Visualize the distribution across Southeast Asia
+```{r}
+#--- VISUALIZE --- #
+register_google(GOOGLE_MAP_API_KEY)
+
+distrib_group_data <- distrib_data %>%
+  select(Ctry, PeopNameAcrossCountries, Longitude, Latitude) %>%
+  rename(people = PeopNameAcrossCountries)
+
+distrib_cluster_data <- loc_cluster_data %>%
+  rename(people = PeopleCluster)
+
+gen_map <- function(data, c, z) {
+  map <- get_map(c,
+     zoom = z,
+     source = "google",
+     maptype = "roadmap",
+     color = "bw")
+  
+  plot <- ggmap(map, darken = c(0.5, "white")) +
+    geom_text_repel(data = data, 
+                    aes(x = Longitude, 
+                        y = Latitude, 
+                        label = people),
+               size = 2,
+               max.overlaps = 200,
+               box.padding = 0) +
+    geom_point(data = data,
+               aes(x = Longitude, 
+                   y = Latitude,
+                   color = Ctry)) +
+    theme(legend.position="none")
+  
+  return (plot)
+}
+
+asean_center <- c(lon = 118.03717513509697, lat = 7.4778495323582765)
+asean_map <- gen_map(distrib_cluster_data, asean_center, 4)
+
+ggsave("asean-map.svg",
+       plot = asean_map,
+       path = "plots/")
+asean_map
+```
+
+```{r}
+kl_center <- c(lon =  101.667270, lat = 3.130561)
+kl_zoom <- 10
+
+msia_center <- c(lon = 102.2985087, lat = 4.0074331)
+msia_zoom <- 7
+  
+ph_center <- c(lon =  121.0971325, lat = 12.0270985)
+ph_zoom <- 6
+
+indchi_center <- c(lon =  100.8250984, lat = 18.6789505)
+indchi_zoom <- 6
+
+gen_map(distrib_cluster_data, kl_center, kl_zoom)
+
+
+```
+
+```{r}
+kl_map <- gen_map(distrib_cluster_data, msia_center, msia_zoom)
+
+ggsave("kuala-lumpur.svg",
+       plot = kl_map,
+       path = "plots/")
+kl_map
+```
+
+
+```{r}
+philippines_map <- gen_map(distrib_group_data, ph_center, ph_zoom)
+
+ggsave("philippines.svg",
+       plot = philippines_map,
+       path = "plots/")
+philippines_map
+```
+```{r}
+indochina_map <- gen_map(distrib_cluster_data, indchi_center, 5)
+
+ggsave("indochina.svg",
+       plot = indochina_map,
+       path = "plots/")
+indochina_map
+```
+
+
+
+### Visualize the timeline of colonization per country
+```{r}
+coldat_malaysia_tbl <- desired_coldat_data %>%
+  filter(country == "Malaysia")
+
+coldat_malaysia_tbl$country[1] = "Malaysia (Britain)"
+coldat_malaysia_tbl$country[2] = "Malaysia (Portugal)"
+
+toplot_coldat_data <- desired_coldat_data %>%
+  filter(country != "Malaysia") %>%
+  bind_rows(coldat_malaysia_tbl) %>%
+  arrange(colstart_max)
+
+ggplot(toplot_coldat_data) +
+  geom_linerange(aes(
+      x = fct_reorder(country, sort(colstart_max, decreasing = T)),
+      ymin = colstart_max,
+      ymax = colend_max,
+      color = colonizer),
+    size = 5,
+    alpha = 0.95) +
+  coord_flip() +
+  labs(x = "Country", y = "Year")
+
+```
+
+```{r}
+# Facet visualize
+ggplot(combined_data, aes(
+    x = lang_family,
+    y = Population)) +
+  # geom_point(aes(size = Population, 
+  #                color = lang_family,
+  #                shape = PrimaryReligion)) +
+  geom_col(aes(fill = PrimaryReligion)) +
+  facet_grid(rows = vars(Ctry), scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  coord_flip()
+```
+
+```{r}
+ggplot(combined_data, aes(
+    x = reorder(Ctry, desc(Ctry)),
+    y = Population)) +
+  geom_col(aes(fill = lang_family)) +
+  coord_flip()
+```
+
+```{r}
+ggplot(combined_data, aes(
+    x = reorder(Ctry, desc(Ctry)),
+    y = Population)) +
+  geom_col(aes(fill = PrimaryReligion)) +
+  coord_flip()
+```
+
+```{r}
+# Summarize to serve as reference
+distrib_indonesia <- distrib_data_json %>%
+  filter(country == "Indonesia") %>%
+  select(-popTenThou, -percent, -population) %>%
+  mutate(location = str_extract(peopleCluster, " of \\w*") %>%
+           str_replace(" of ", "") %>%
+           str_trim()) %>%
+  arrange(location, desc(popThou)) %>%
+  print(n = Inf)
+
+distrib_indonesia %>%
+  group_by(location) %>%
+  summarize(popThou = sum(popThou))
+
+# Review Brunei
+combined_data %>%
+  filter(Ctry == "Brunei") %>%
+  arrange(desc(Population))
+
+distrib_data_json %>%
+  group_by(country) %>%
+  summarize(popThou = sum(popThou))
+```
+
+```{r}
+# Top 3 languages for every language family. To be used
+# for the language family legend
+langfam_summary <- combined_data %>%
+  group_by(lang_family, PrimaryLanguageName) %>%
+  summarize(population = sum(Population)) %>%
+  ungroup() %>%
+  filter(lang_family != "") %>%
+  group_by(lang_family) %>%
+  top_n(5, wt = population) %>%
+  arrange(lang_family, desc(population))
+langfam_summary %>%
+  print(n = Inf)
+
+# Summary for religion and language
+tally_langfam <- distrib_data_json %>%
+  group_by(langFamily) %>%
+  summarize(population = sum(population)) %>%
+  arrange(desc(population)) %>%
+  ungroup() %>%
+  mutate(popThou = round(population / sum(population) * 1000))
+tally_langfam
+```
+
+```{r}
+religion_plot <- ggplot(tally_religion %>%
+         mutate(allReligion = "all religion"),
+       aes(x = allReligion,
+           y = popThou)) +
+  geom_col(aes(fill = primaryReligion)) + 
+  geom_text(aes(label = popThou),
+            position = position_stack(vjust = 0.5)) +
+  coord_flip()
+
+ggsave(plot = religion_plot, filename = "plots/tally-religion.svg")
+religion_plot
+```
+
+```{r}
+tally_religion <-  distrib_data_json %>%
+  group_by(primaryReligion) %>%
+  summarize(population = sum(population)) %>%
+  arrange(desc(population)) %>%
+  ungroup() %>%
+  mutate(popThou = round(population / sum(population) * 1000))
+tally_religion
+```
+
+```{r}
+langfam_plot <- ggplot(tally_langfam %>%
+         mutate(allReligion = "all religion"),
+       aes(x = allReligion,
+           y = popThou)) +
+  geom_col(aes(fill = langFamily)) + 
+  geom_text(aes(label = popThou),
+            position = position_stack(vjust = 0.5)) +
+  coord_flip()
+
+ggsave(plot = langfam_plot, filename = "plots/tally_langfam.svg")
+langfam_plot
+```
+
+```{r}
+
+```

@@ -20,6 +20,9 @@ GOOGLE_MAP_API_KEY <- "AIzaSyDLuH3fAvlTJg-XPX_Ng_-4acr6FEShLfw"
 COLDAT_COLONIES_URL <- "https://docs.google.com/spreadsheets/d/1Qu8UmA-wJU9vohV6wmvDk0RcS7_4MvIz8OviELQ1dkw/edit#gid=1614706879"
 COLDAT_DYADS_URL <- "https://docs.google.com/spreadsheets/d/1uXKX4b8CySp8E_W2B8KeBJknTeYppDjljv6VF2qLc4A/edit#gid=1350853870"
 
+OTHER_CLUSTERS = "Other Clusters"
+OTHER_RELIGIONS = "Other Religions"
+OTHER_LANGFAMS = "Other Language Families"
 
 #--- FETCH DATASETS --- #
 
@@ -77,80 +80,7 @@ combined_data <- desired_data %>%
   mutate(Ctry = fct_relevel(desired_data$Ctry, sea_countries_full))
 
 
-#--- VISUALIZE --- #
-
-# Visualize the distribution across Southeast Asia
-register_google(GOOGLE_MAP_API_KEY)
-
-location <- c(lon = 118.03717513509697, lat = 7.4778495323582765)
-asean_map <- get_map(location,
-                     zoom = 4,
-                     source = "google",
-                     maptype = "roadmap",
-                     color = "bw")
-
-ggmap(asean_map, darken = c(0.5, "white")) +
-  geom_point(data = combined_data,
-             aes(Longitude, Latitude,
-                 size = Population,
-                 color = lang_family, # PrimaryReligion # PeopleCluster # AffinityBloc,
-                 shape= PrimaryReligion
-                 ),
-             fill = "transparent") #+ theme(legend.position="none")
-
-# Visualize the timeline of colonization per country
-coldat_malaysia_tbl <- desired_coldat_data %>%
-  filter(country == "Malaysia")
-
-coldat_malaysia_tbl$country[1] = "Malaysia (Britain)"
-coldat_malaysia_tbl$country[2] = "Malaysia (Portugal)"
-
-toplot_coldat_data <- desired_coldat_data %>%
-  filter(country != "Malaysia") %>%
-  bind_rows(coldat_malaysia_tbl) %>%
-  arrange(colstart_max)
-
-ggplot(toplot_coldat_data) +
-  geom_linerange(aes(
-      x = fct_reorder(country, sort(colstart_max, decreasing = T)),
-      ymin = colstart_max,
-      ymax = colend_max,
-      color = colonizer),
-    size = 5,
-    alpha = 0.95) +
-  coord_flip() +
-  labs(x = "Country", y = "Year")
-
-# Facet visualize
-ggplot(combined_data, aes(
-    x = lang_family,
-    y = Population)) +
-  # geom_point(aes(size = Population, 
-  #                color = lang_family,
-  #                shape = PrimaryReligion)) +
-  geom_col(aes(fill = PrimaryReligion)) +
-  facet_grid(rows = vars(Ctry), scales = "free_y") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  coord_flip()
-
-ggplot(combined_data, aes(
-    x = reorder(Ctry, desc(Ctry)),
-    y = Population)) +
-  geom_col(aes(fill = lang_family)) +
-  coord_flip()
-
-ggplot(combined_data, aes(
-    x = reorder(Ctry, desc(Ctry)),
-    y = Population)) +
-  geom_col(aes(fill = PrimaryReligion)) +
-  coord_flip()
-
-
 #--- REPRESENT COMMUNITIES ---#
-OTHER_CLUSTERS = "Other Clusters"
-OTHER_RELIGIONS = "Other Religions"
-OTHER_LANGFAMS = "Other Language Families"
-
 strat_data <- combined_data %>%
   filter(!is.na(Population)) %>%
   rename(langFamily = lang_family) %>%
@@ -259,44 +189,6 @@ distrib_data_json <- distrib_data %>%
 toJSON(distrib_data_json) %>%
   write("data/output/aseanDistributionData.json")
 
-
-# Summarize to serve as reference
-
-distrib_data_json %>%
-  arrange(desc(popThou)) %>%
-  print(n = Inf)
-
-distrib_data_json %>%
-  group_by(langFamily) %>%
-  summarize(sumPopThou= sum(popThou)) %>%
-  ungroup() %>%
-  mutate(perc = sumPopThou/sum(sumPopThou)*100) %>%
-  arrange(desc(sumPopThou))
-
-distrib_data_json %>%
-  arrange(country) %>%
-  print(n = Inf)
-
-distrib_indonesia <- distrib_data_json %>%
-  filter(country == "Indonesia") %>%
-  select(-popTenThou, -percent, -population) %>%
-  mutate(location = str_extract(peopleCluster, " of \\w*") %>%
-           str_replace(" of ", "") %>%
-           str_trim()) %>%
-  arrange(location, desc(popThou)) %>%
-  print(n = Inf)
-
-distrib_data_json %>%
-  filter(country == "Cambodia") %>%
-  select(-popTenThou, -percent, -population)
-
-# Review Brunei
-combined_data %>%
-  filter(Ctry == "Brunei") %>%
-  arrange(desc(Population))
-
-distrib_data_json %>%
-  group_by(country) %>%
-  summarize(popThou = sum(popThou))
-
-           
+# Review the religion breakdown for popThou more than 10
+raw_data
+combined_data
