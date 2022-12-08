@@ -197,7 +197,7 @@ distrib_data <- majmin_data %>%
   unique() %>%
   print(n = Inf)
 
-COUNTRY <- "Philippines"
+COUNTRY <- "Indonesia"
 
 distrib_data %>% arrange(Ctry, PeopleCluster,
                          desc(popThou),
@@ -213,7 +213,7 @@ distrib_data %>%
   print(n = Inf)
 
 
-distrib_data %>% summarize(sum(popThou))
+distrib_data %>% filter(Ctry == COUNTRY) %>% summarize(sum(popThou))
 
 
 

@@ -3,15 +3,12 @@ source("represent.R")
 strat_data
 distrib_data
 
-strat_data %>%
-  filter(popThou == 0) %>%
-  anti_join(distrib_data %>%
-              select(Ctry, PeopleCluster, PeopNameAcrossCountries)) %>%
-  group_by(Ctry, PeopleCluster, PeopNameAcrossCountries) %>%
-  summarize(Population = sum(Population)) %>%
-  group_by(Ctry) %>%
-  mutate(percent = Population / sum(Population) * 100) %>%
-  arrange(Ctry, desc(Population)) %>%
-  filter(percent >= 1) %>%
+others_data <- strat_data %>%
+  # anti_join(distrib_data %>% select(Ctry, PeopleCluster),
+  #           by = c("Ctry", "PeopleCluster")) %>%
+  # filter(popThou == 0) %>%
+  filter(Ctry == "Singapore") %>%
+  filter(PeopleCluster == "Chinese") %>%
+  arrange(PeopleCluster, desc(Population), PrimaryReligion, langFamily) %>%
   print(n = Inf)
   
